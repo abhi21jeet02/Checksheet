@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MHE Checksheet</title>
+<style>
+  body { font-family: Arial; margin: 20px; }
+  .submission-card { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<h2>MHE Checksheet</h2>
+<p>MHE QR Scanned: <span id="currentMHE"></span></p>
+
+<div id="fillForm" style="display:none;">
+  <label>Driver Name: <input type="text" id="driverName"></label><br><br>
+  <label><input type="checkbox" id="brakes"> BRAKES</label><br>
+  <label><input type="checkbox" id="steering"> STEERING</label><br>
+  <label><input type="checkbox" id="electrical_system"> ELECTRICAL SYSTEM</label><br>
+  <label><input type="checkbox" id="wheel"> WHEEL</label><br>
+  <label><input type="checkbox" id="light"> LIGHT</label><br><br>
+  <label>Remark: <input type="text" id="remark"></label><br><br>
+  <button onclick="submitForm()">Submit</button>
+</div>
+
+<div id="viewSubmission" style="display:none;">
+  <h3>Submissions</h3>
+  <div id="submissionsList"></div>
+</div>
+
+<script>
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxZKZu2co139L4fM4aPBLXkhg43UO2bCUePTtAMWVXe-ijaMU7dUBt6vXWL4cCFy_s6/exec'; // Replace with Apps Script URL
+
+// Get MHE_ID from URL (QR scan)
+const urlParams = new URLSearchParams(window.location.search);
+const currentMHE = urlParams.get('mhe_id');
+document.getElementById('currentMHE').innerText = currentMHE || 'Not found';
+
+async function handleQRCode() {
+  if(!currentMHE) { alert('MHE ID missing in QR URL'); return; }
+
+  const res = await fetch(`${WEB_APP_URL}?action=view&mhe_id=${currentMHE}`);
+  const submissions = await res.json();
+  const today = new Date().toISOString().split('T')[0];
+  const todaySubmission = submissions.find(s => s.Submission_Date === today);
+
+  if(todaySubmission) {
+      showViewSubmission(submissions);
+  } else {
+      showFillForm();
+  }
+}
+
+async function submitForm() {
+  const driverName = document.getElementById('driverName').value.trim();
+  const check1 = document.getElementById('brakes').checked;
+  const check2 = document.getElementById('steering').checked;
+  const check3 = document.getElementById('electrical_system').checked;
+  const check4 = document.getElementById('wheel').checked;
+  const check5 = document.getElementById('light').checked;
+  const remark = document.getElementById('remark').value.trim();
+
+  const formData = new URLSearchParams({
+      mhe_id: currentMHE,
+      driver_name: driverName,
+      brakes: check1,
+      steering: check2,
+      electrical_system: check3,
+      wheel: check4,
+      light: check5,
+      remark
+  });
+
+  const res = await fetch(WEB_APP_URL, { method: 'POST', body: formData });
+  const result = await res.json();
+  if(result.status === 'success') alert('Submitted Successfully!');
+  handleQRCode(); // Show submissions after submit
+}
+
+function showFillForm() {
+  document.getElementById('fillForm').style.display = 'block';
+  document.getElementById('viewSubmission').style.display = 'none';
+}
+
+function showViewSubmission(submissions) {
+  document.getElementById('fillForm').style.display = 'none';
+  document.getElementById('viewSubmission').style.display = 'block';
+  const listDiv = document.getElementById('submissionsList');
+  listDiv.innerHTML = '';
+  submissions.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'submission-card';
+      div.innerHTML = `
+          <strong>Date:</strong> ${s.Submission_Date}<br>
+          <strong>Driver:</strong> ${s.Driver_Name}<br>
+          <strong>BRAKES:</strong> ${s.BRAKES} | 
+          <strong>STEERING:</strong> ${s.STEERING} | 
+          <strong>ELECTRICAL:</strong> ${s.ELECTRICAL_SYSTEM} | 
+          <strong>WHEEL:</strong> ${s.WHEEL} | 
+          <strong>LIGHT:</strong> ${s.LIGHT}<br>
+          <strong>Remark:</strong> ${s.REMARK}
+      `;
+      listDiv.appendChild(div);
+  });
+}
+
+// Initialize page
+handleQRCode();
+</script>
+
+</body>
+</html>
