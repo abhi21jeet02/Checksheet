@@ -35,7 +35,20 @@
     .small { font-size:13px; color:#cbd5e1; }
     .alert { background: rgba(220,38,38,0.12); color:#fecaca; padding:10px 12px; border-radius:8px; margin-bottom:10px; }
     .ok { background: rgba(16,185,129,0.08); color:#bbf7d0; padding:10px 12px; border-radius:8px; margin-bottom:10px; }
-    @media (max-width:768px){ .checklist { flex-direction:column; } input[type="text"], button { font-size:14px; } }
+
+    /* --- MOBILE RESPONSIVE --- */
+    @media (max-width:768px){
+      .checklist { flex-direction:column; }
+      input[type="text"], button { font-size:14px; }
+      #role-section, #form-section, #view-section { padding:15px; }
+      table { display:block; overflow-x:auto; white-space:nowrap; }
+    }
+    @media (max-width:480px){
+      .card button { width:100%; margin-top:8px; }
+      .card div[style*="display:flex; gap:10px;"] { flex-direction:column; }
+      input[type="text"] { font-size:13px; padding:8px; }
+      .status-badge { padding:4px 6px; font-size:12px; }
+    }
   </style>
 </head>
 <body>
@@ -59,7 +72,6 @@
       <h3 style="margin:0">Fill Checklist (Today)</h3>
       <div id="todayStatusContainer"></div>
     </div>
-
     <label>Driver Name / ID: <input type="text" id="driverName" placeholder="Enter your name or ID"></label>
     <div class="checklist">
       <label><input type="checkbox" id="Brakes"> Brakes</label>
@@ -68,7 +80,6 @@
       <label><input type="checkbox" id="Wheel"> Wheel</label>
       <label><input type="checkbox" id="Lights"> Lights</label>
     </div>
-
     <div style="margin-top:12px;">
       <label class="muted small">Optional remark: <input type="text" id="driverRemark" placeholder="Add remark (if any)"></label>
     </div>
@@ -83,14 +94,20 @@
   <!-- Supervisor View -->
   <div class="card" id="view-section" style="display:none;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h3 style="margin:0">Supervisor View — Submissions & Approvals</h3>
-      <div>
-        <label class="muted small">Month: </label>
-        <select id="monthSelect" onchange="loadTable()"></select>
-      </div>
-    </div>
+  <h3 style="margin:0">Supervisor View — Submissions & Approvals</h3>
+  <div>
+    <label class="muted small">Month: </label>
+    <select id="monthSelect" onchange="loadTable()"></select>
+  </div>
+</div>
+
+<div style="margin-top:10px;">
+  <button id="toggleAllMHEs" onclick="toggleAllMHEs()">View All MHEs</button>
+</div>
+
 
     <div id="todayAlert"></div>
+
 
     <table id="submissionTable">
       <!-- filled by JS -->
@@ -125,22 +142,43 @@ const checklistItems = ["Brakes","Steering","Electrical","Wheel","Lights"];
 function show(el){ el.style.display = "block"; }
 function hide(el){ el.style.display = "none"; }
 
+let showAllMHEs = false;
+
+window.toggleAllMHEs = function(){
+  showAllMHEs = !showAllMHEs;
+  document.getElementById("toggleAllMHEs").textContent = showAllMHEs ? "View Only QR MHE" : "View All MHEs";
+  loadTable();
+}
+
+
+
 /* --- ROLE TOGGLE --- */
 window.toggleRole = function(){
   const role = document.getElementById("roleSelect").value;
   const form = document.getElementById("form-section");
   const view = document.getElementById("view-section");
+  
   if(role === "driver"){
     show(form); hide(view);
-    // Preload today's data for driver if available
     loadTodayForDriver();
-  } else if(role === "supervisor"){
+  } 
+  else if(role === "supervisor"){
+    // --- NEW: ask for passkey ---
+    const passkey = prompt("Enter Supervisor Passkey:");
+    const correctKey = "SUP123"; // <-- set your desired passkey here
+    if(passkey !== correctKey){
+      alert("❌ Incorrect passkey! Access denied.");
+      document.getElementById("roleSelect").value = ""; // reset role selection
+      hide(form); hide(view);
+      return;
+    }
+    // --- end passkey check ---
+    
     hide(form); show(view);
-    // ensure months populated and table loaded
     populateMonths();
-    // small delay ensures monthSelect has value
     setTimeout(()=> loadTable(), 100);
-  } else {
+  } 
+  else {
     hide(form); hide(view);
   }
 };
@@ -358,7 +396,6 @@ function populateMonths(){
   select.value = getTodayParts().monthKey;
 }
 
-/* --- LOAD TABLE for supervisor (calendar view + status color) --- */
 async function loadTable(){
   if(!ensureMheIdPresent()) return;
   const monthKey = document.getElementById("monthSelect").value;
@@ -375,31 +412,35 @@ async function loadTable(){
   }
 
   // days in selected month
-  const daysInMonth = new Date(parseInt(monthKey.split("-")[0]), parseInt(monthKey.split("-")[1]), 0).getDate();
+  const year = parseInt(monthKey.split("-")[0]);
+  const month = parseInt(monthKey.split("-")[1])-1; // JS month 0-indexed
+  const today = new Date();
+  const isCurrentMonth = (today.getFullYear() === year && today.getMonth() === month);
+  const lastDay = isCurrentMonth ? today.getDate() : new Date(year, month+1, 0).getDate();
 
   // header
   let header = "<thead><tr><th>MHE ID</th><th>Item</th><th>Driver</th><th>Today Status</th>";
-  for(let d=1; d<=daysInMonth; d++) header += `<th>${d}</th>`;
+  for(let d=1; d<=lastDay; d++) header += `<th>${d}</th>`;
   header += "<th>Approve</th><th>Reject</th></tr></thead>";
   table.innerHTML += header;
   table.innerHTML += "<tbody></tbody>";
   const tbody = table.querySelector("tbody");
 
-  for(let mheDoc of mheSnap.docs){
+for(let mheDoc of mheSnap.docs){
     const mheId = mheDoc.id;
+    if(!showAllMHEs && mheId !== MHE_ID) continue;
     const data = mheDoc.data() || {};
     const checklist = data.checklist || {};
     const approvals = data.approvals || {};
     const submittedDrivers = data.submittedDrivers || {};
     const status = data.status || {};
-    // iterate items and drivers
+    
+    
     for(let item of checklistItems){
       for(let day in submittedDrivers){
         for(let driver of submittedDrivers[day]){
           let row = document.createElement("tr");
-          // today status: check status[day]?.[driver]?.state or compute
           const todayState = status[day]?.[driver]?.state || (approvals[day]?.[driver]?.status ? approvals[day][driver].status : "Submitted");
-          // map to badge
           let badge = `<span class="status-badge `;
           if(todayState === "Pending") badge += `status-pending">Pending</span>`;
           else if(todayState === "Submitted") badge += `status-submitted">Submitted</span>`;
@@ -407,14 +448,15 @@ async function loadTable(){
           else if(todayState === "Rejected") badge += `status-rejected">Rejected</span>`;
           else badge += `status-submitted">${todayState}</span>`;
 
-          // row cells
           row.innerHTML = `<td>${mheId}</td><td>${item}</td><td>${driver}</td><td>${badge}</td>`;
-          // day-by-day marks
-          for(let d=1; d<=daysInMonth; d++){
+
+          // day-by-day marks (sirf 1 se lastDay tak)
+          for(let d=1; d<=lastDay; d++){
             const mark = checklist[item]?.[String(d)] || "-";
             row.innerHTML += `<td>${mark}</td>`;
           }
-          // approve / reject buttons for that driver/day (use day as variable)
+
+          // approve / reject buttons
           row.innerHTML += `<td><button class="approve-btn" data-mhe="${mheId}" data-driver="${driver}" data-day="${day}">Approve</button></td>`;
           row.innerHTML += `<td><button class="reject-btn" data-mhe="${mheId}" data-driver="${driver}" data-day="${day}">Reject</button></td>`;
           tbody.appendChild(row);
@@ -435,9 +477,9 @@ async function loadTable(){
     });
   });
 
-  // show today alert for THIS MHE (the one scanned via QR)
   showTodaySubmissionAlert(monthKey);
 }
+
 
 /* --- Show Today Not-Submitted Alert for this MHE only --- */
 async function showTodaySubmissionAlert(monthKey){
@@ -492,3 +534,4 @@ window.loadTodayForDriver = loadTodayForDriver;
 </script>
 </body>
 </html>
+
