@@ -1,112 +1,179 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>MHE Checksheet</title>
-<style>
-  body { font-family: Arial; margin: 20px; }
-  .submission-card { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
-</style>
+  <meta charset="UTF-8">
+  <title>MHE Checksheet</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f7f9;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      max-width: 500px;
+      width: 100%;
+      background: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      animation: fadeIn 0.6s ease;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    label {
+      display: flex;
+      align-items: center;
+      margin: 12px 0;
+      font-size: 16px;
+    }
+    input[type="checkbox"] {
+      margin-right: 10px;
+      transform: scale(1.3);
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #4CAF50;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    .message {
+      text-align: center;
+      margin: 15px 0;
+      font-weight: bold;
+      color: #d9534f;
+    }
+    .view-section {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .submission-card {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      animation: slideUp 0.5s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </head>
 <body>
 
-<h2>MHE Checksheet</h2>
-<p>MHE QR Scanned: <span id="currentMHE"></span></p>
+<div class="container">
+  <h2>MHE Checksheet</h2>
+  <p><strong>MHE:</strong> <span id="currentMHE"></span></p>
 
-<div id="fillForm" style="display:none;">
-  <label>Driver Name: <input type="text" id="driverName"></label><br><br>
-  <label><input type="checkbox" id="brakes"> BRAKES</label><br>
-  <label><input type="checkbox" id="steering"> STEERING</label><br>
-  <label><input type="checkbox" id="electrical_system"> ELECTRICAL SYSTEM</label><br>
-  <label><input type="checkbox" id="wheel"> WHEEL</label><br>
-  <label><input type="checkbox" id="light"> LIGHT</label><br><br>
-  <label>Remark: <input type="text" id="remark"></label><br><br>
-  <button onclick="submitForm()">Submit</button>
-</div>
+  <div id="formSection">
+    <label><input type="checkbox" id="brakes"> Brakes</label>
+    <label><input type="checkbox" id="steering"> Steering</label>
+    <label><input type="checkbox" id="electrical_system"> Electrical System</label>
+    <label><input type="checkbox" id="wheel"> Wheel</label>
+    <label><input type="checkbox" id="light"> Light</label>
+    <label>Remark: <input type="text" id="remark" placeholder="Enter remark"></label>
+    <button onclick="submitForm()">Submit</button>
+  </div>
 
-<div id="viewSubmission" style="display:none;">
-  <h3>Submissions</h3>
+  <div class="message" id="statusMsg"></div>
+
+  <div class="view-section">
+    <button style="background:#007BFF;" onclick="loadSubmissions()">View Submissions</button>
+  </div>
+
   <div id="submissionsList"></div>
 </div>
 
 <script>
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxZKZu2co139L4fM4aPBLXkhg43UO2bCUePTtAMWVXe-ijaMU7dUBt6vXWL4cCFy_s6/exec'; // Replace with Apps Script URL
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzWfEQvnpu1j6ozieT6KJ20KxkGmLWVi6PF3xV0P8sTI89delgrsdlj-XtwUifDkgHduA/exec"; // Replace with Apps Script URL
 
-// Get MHE_ID from URL (QR scan)
 const urlParams = new URLSearchParams(window.location.search);
 const currentMHE = urlParams.get('mhe_id');
-document.getElementById('currentMHE').innerText = currentMHE || 'Not found';
+document.getElementById('currentMHE').innerText = currentMHE || "Unknown";
 
-async function handleQRCode() {
-  if(!currentMHE) { alert('MHE ID missing in QR URL'); return; }
+async function checkToday() {
+  if (!currentMHE) return;
+  const res = await fetch(`${WEB_APP_URL}?action=check&mhe_id=${currentMHE}`);
+  const data = await res.json();
+  if (data.filled) {
+    document.getElementById("formSection").style.display = "none";
+    document.getElementById("statusMsg").innerText = "✅ Already Submitted Today";
+  }
+}
+checkToday();
 
-  const res = await fetch(`${WEB_APP_URL}?action=view&mhe_id=${currentMHE}`);
-  const submissions = await res.json();
-  const today = new Date().toISOString().split('T')[0];
-  const todaySubmission = submissions.find(s => s.Submission_Date === today);
+async function submitForm() {
+  const formData = new URLSearchParams({
+    mhe_id: currentMHE,
+    brakes: document.getElementById("brakes").checked,
+    steering: document.getElementById("steering").checked,
+    electrical_system: document.getElementById("electrical_system").checked,
+    wheel: document.getElementById("wheel").checked,
+    light: document.getElementById("light").checked,
+    remark: document.getElementById("remark").value.trim()
+  });
 
-  if(todaySubmission) {
-      showViewSubmission(submissions);
+  const res = await fetch(WEB_APP_URL, { method: "POST", body: formData });
+  const result = await res.json();
+  if (result.status === "success") {
+    document.getElementById("statusMsg").innerText = "✅ Submitted Successfully!";
+    document.getElementById("formSection").style.display = "none";
   } else {
-      showFillForm();
+    document.getElementById("statusMsg").innerText = "❌ " + result.msg;
   }
 }
 
-async function submitForm() {
-  const driverName = document.getElementById('driverName').value.trim();
-  const check1 = document.getElementById('brakes').checked;
-  const check2 = document.getElementById('steering').checked;
-  const check3 = document.getElementById('electrical_system').checked;
-  const check4 = document.getElementById('wheel').checked;
-  const check5 = document.getElementById('light').checked;
-  const remark = document.getElementById('remark').value.trim();
+async function loadSubmissions() {
+  const res = await fetch(`${WEB_APP_URL}?action=view&mhe_id=${currentMHE}`);
+  const data = await res.json();
+  const listDiv = document.getElementById("submissionsList");
+  listDiv.innerHTML = "";
 
-  const formData = new URLSearchParams({
-      mhe_id: currentMHE,
-      driver_name: driverName,
-      brakes: check1,
-      steering: check2,
-      electrical_system: check3,
-      wheel: check4,
-      light: check5,
-      remark
-  });
-
-  const res = await fetch(WEB_APP_URL, { method: 'POST', body: formData });
-  const result = await res.json();
-  if(result.status === 'success') alert('Submitted Successfully!');
-  handleQRCode(); // Show submissions after submit
+  const today = new Date().getDate();
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const div = document.createElement("div");
+    div.className = "submission-card";
+    div.innerHTML = `
+      <strong>Date:</strong> ${today}-${new Date().getMonth()+1}<br>
+      <strong>Brakes:</strong> ${row[today] || ""} | 
+      <strong>Steering:</strong> ${data[2][today] || ""} |
+      <strong>Electrical:</strong> ${data[3][today] || ""} |
+      <strong>Wheel:</strong> ${data[4][today] || ""} |
+      <strong>Light:</strong> ${data[5][today] || ""}<br>
+      <strong>Remark:</strong> ${data[6][today] || ""}
+    `;
+    listDiv.appendChild(div);
+  }
 }
-
-function showFillForm() {
-  document.getElementById('fillForm').style.display = 'block';
-  document.getElementById('viewSubmission').style.display = 'none';
-}
-
-function showViewSubmission(submissions) {
-  document.getElementById('fillForm').style.display = 'none';
-  document.getElementById('viewSubmission').style.display = 'block';
-  const listDiv = document.getElementById('submissionsList');
-  listDiv.innerHTML = '';
-  submissions.forEach(s => {
-      const div = document.createElement('div');
-      div.className = 'submission-card';
-      div.innerHTML = `
-          <strong>Date:</strong> ${s.Submission_Date}<br>
-          <strong>Driver:</strong> ${s.Driver_Name}<br>
-          <strong>BRAKES:</strong> ${s.BRAKES} | 
-          <strong>STEERING:</strong> ${s.STEERING} | 
-          <strong>ELECTRICAL:</strong> ${s.ELECTRICAL_SYSTEM} | 
-          <strong>WHEEL:</strong> ${s.WHEEL} | 
-          <strong>LIGHT:</strong> ${s.LIGHT}<br>
-          <strong>Remark:</strong> ${s.REMARK}
-      `;
-      listDiv.appendChild(div);
-  });
-}
-
-// Initialize page
-handleQRCode();
 </script>
 
 </body>
