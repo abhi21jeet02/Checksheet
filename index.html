@@ -5,60 +5,44 @@
   <title>MHE Checklist - AI Style with Approval</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #1e293b, #111827);
-      color: #f3f4f6;
-      margin: 0;
-      padding: 20px;
-      min-height: 100vh;
-    }
-    h2 { text-align:center; font-weight:700; color:#3b82f6; margin-bottom:10px; }
-    .subtitle { text-align:center; color:#9ca3af; margin-bottom:20px; }
-    .card { background: rgba(255,255,255,0.05); border-radius: 20px; padding:20px; margin-bottom:20px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.2); border: 1px solid rgba(59,130,246,0.15); transition: transform 0.3s, box-shadow 0.3s; }
-    label { display:block; margin:12px 0; font-weight:500; color:#f3f4f6; }
-    input[type="text"] { width:100%; padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.04); color:#f3f4f6; outline:none; font-size:15px; transition: all 0.2s; }
-    .checklist { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; }
-    .checklist label { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:10px; background:rgba(255,255,255,0.03); cursor:pointer; }
-    .checklist input[type="checkbox"]{ width:20px; height:20px; accent-color:#3b82f6; }
-    button { background: linear-gradient(135deg, #3b82f6, #2563eb); color:#fff; font-weight:600; padding:10px 18px; border:none; border-radius:12px; cursor:pointer; font-size:15px; transition: all 0.2s; }
-    .muted { color:#9ca3af; font-size:14px; }
-    .status-badge { display:inline-block; padding:6px 10px; border-radius:999px; font-weight:600; margin-left:8px; }
-    .status-pending { background:#7f1d1d; color:#fff; }       /* red */
-    .status-submitted { background:#92400e; color:#fff; }     /* amber */
-    .status-approved { background:#065f46; color:#fff; }      /* green */
-    .status-rejected { background:#374151; color:#fff; }      /* dark */
-    table { width:100%; border-collapse:collapse; margin-top:14px; }
-    th, td { padding:10px; text-align:center; border-bottom:1px solid rgba(255,255,255,0.03); font-weight:500; color:#f3f4f6; }
-    th { background: rgba(59,130,246,0.12); }
-    .small { font-size:13px; color:#cbd5e1; }
-    .alert { background: rgba(220,38,38,0.12); color:#fecaca; padding:10px 12px; border-radius:8px; margin-bottom:10px; }
-    .ok { background: rgba(16,185,129,0.08); color:#bbf7d0; padding:10px 12px; border-radius:8px; margin-bottom:10px; }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-    /* --- MOBILE RESPONSIVE --- */
-    @media (max-width:768px){
-      .checklist { flex-direction:column; }
-      input[type="text"], button { font-size:14px; }
-      #role-section, #form-section, #view-section { padding:15px; }
-      table { display:block; overflow-x:auto; white-space:nowrap; }
-    }
-    @media (max-width:480px){
-      .card button { width:100%; margin-top:8px; }
-      .card div[style*="display:flex; gap:10px;"] { flex-direction:column; }
-      input[type="text"] { font-size:13px; padding:8px; }
-      .status-badge { padding:4px 6px; font-size:12px; }
-    }
+  <style>
+    body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #1e293b, #111827); color: #f3f4f6; margin:0; padding:20px; min-height:100vh; }
+    h2{text-align:center;font-weight:700;color:#3b82f6;margin-bottom:10px;}
+    .subtitle{text-align:center;color:#9ca3af;margin-bottom:20px;}
+    .card{background:rgba(255,255,255,0.05);border-radius:20px;padding:20px;margin-bottom:20px;backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(0,0,0,0.2);border:1px solid rgba(59,130,246,0.15);transition:transform 0.3s, box-shadow 0.3s;}
+    label{display:block;margin:12px 0;font-weight:500;color:#f3f4f6;}
+    input[type="text"]{width:100%;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#f3f4f6;outline:none;font-size:15px;transition: all 0.2s;}
+    .checklist{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;}
+    .checklist label{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,0.03);cursor:pointer;}
+    .checklist input[type="checkbox"]{width:20px;height:20px; accent-color:#3b82f6;}
+    button{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;font-weight:600;padding:10px 18px;border:none;border-radius:12px;cursor:pointer;font-size:15px;transition: all 0.2s;}
+    .muted{color:#9ca3af;font-size:14px;}
+    .status-badge{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:600;margin-left:8px;}
+    .status-pending{background:#7f1d1d;color:#fff;}
+    .status-submitted{background:#92400e;color:#fff;}
+    .status-approved{background:#065f46;color:#fff;}
+    .status-rejected{background:#374151;color:#fff;}
+    table{width:100%;border-collapse:collapse;margin-top:14px;}
+    th, td{padding:10px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.03);font-weight:500;color:#f3f4f6;}
+    th{background: rgba(59,130,246,0.12);}
+    .small{font-size:13px;color:#cbd5e1;}
+    .alert{background: rgba(220,38,38,0.12); color:#fecaca; padding:10px 12px; border-radius:8px; margin-bottom:10px;}
+    .ok{background: rgba(16,185,129,0.08); color:#bbf7d0; padding:10px 12px; border-radius:8px; margin-bottom:10px;}
+
+    @media (max-width:768px){.checklist{flex-direction:column;}input[type="text"],button{font-size:14px;}#role-section,#form-section,#view-section{padding:15px;}table{display:block;overflow-x:auto;white-space:nowrap;}}
+    @media (max-width:480px){.card button{width:100%;margin-top:8px;}.card div[style*="display:flex; gap:10px;"]{flex-direction:column;}input[type="text"]{font-size:13px;padding:8px;}.status-badge{padding:4px 6px;font-size:12px;}}
   </style>
 </head>
 <body>
   <h2>MHE Daily Checklist</h2>
-  <div class="subtitle">Scan QR on the MHE → choose role → perform action</div>
+  <div class="subtitle">Scan QR on the MHE → assigned driver auto-filled → fill checklist → submit</div>
 
   <!-- Role Selection -->
   <div class="card" id="role-section">
     <h3>Select Role</h3>
-    <label class="muted">This QR must contain <code>?mhe_id=MHE1</code> (or respective MHE). If missing, submission will be blocked.</label>
+    <label class="muted">This QR must contain <code>?mhe_id=MHE1</code> (or respective MHE). Submission blocked if missing.</label>
     <select id="roleSelect" onchange="toggleRole()">
       <option value="">-- Select --</option>
       <option value="driver">Driver</option>
@@ -72,7 +56,7 @@
       <h3 style="margin:0">Fill Checklist (Today)</h3>
       <div id="todayStatusContainer"></div>
     </div>
-    <label>Driver Name / ID: <input type="text" id="driverName" placeholder="Enter your name or ID"></label>
+    <label>Driver Name / ID: <input type="text" id="driverName" placeholder="Auto-filled if assigned from Key Holder"></label>
     <div class="checklist">
       <label><input type="checkbox" id="Brakes"> Brakes</label>
       <label><input type="checkbox" id="Steering"> Steering</label>
@@ -83,7 +67,6 @@
     <div style="margin-top:12px;">
       <label class="muted small">Optional remark: <input type="text" id="driverRemark" placeholder="Add remark (if any)"></label>
     </div>
-
     <div style="display:flex; gap:10px; margin-top:14px;">
       <button onclick="submitForm()">Submit / Update Today</button>
       <button onclick="clearDriverForm()">Clear</button>
@@ -94,32 +77,26 @@
   <!-- Supervisor View -->
   <div class="card" id="view-section" style="display:none;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-  <h3 style="margin:0">Supervisor View — Submissions & Approvals</h3>
-  <div>
-    <label class="muted small">Month: </label>
-    <select id="monthSelect" onchange="loadTable()"></select>
-  </div>
-</div>
-
-<div style="margin-top:10px;">
+      <h3 style="margin:0">Supervisor View — Submissions & Approvals</h3>
+      <div>
+        <label class="muted small">Month: </label>
+        <select id="monthSelect" onchange="loadTable()"></select>
+      </div>
+    </div>
+   <div style="margin-top:10px; display:flex; gap:10px;">
   <button id="toggleAllMHEs" onclick="toggleAllMHEs()">View All MHEs</button>
+  <button onclick="downloadExcel()">Download Excel</button>
 </div>
-
 
     <div id="todayAlert"></div>
-
-
-    <table id="submissionTable">
-      <!-- filled by JS -->
-    </table>
+    <table id="submissionTable"></table>
   </div>
 
 <script type="module">
-/* Firebase + Firestore v12 */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getFirestore, doc, collection, getDoc, setDoc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-/* --- CONFIG (same as yours) --- */
+/* --- CONFIG --- */
 const firebaseConfig = {
   apiKey: "AIzaSyBx_26h3CD_fRCILcmWLuDUc8v8pzH8Sxo",
   authDomain: "mhe-checksheet.firebaseapp.com",
@@ -129,28 +106,19 @@ const firebaseConfig = {
   appId: "1:413824836416:web:63faa90294e161363510a5",
   measurementId: "G-ZQ77KHXXVB"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 /* --- PARAMETERS & ITEMS --- */
 const urlParams = new URLSearchParams(window.location.search);
-const MHE_ID = urlParams.get("mhe_id"); // IMPORTANT: must be present
+const MHE_ID = urlParams.get("mhe_id");
 const checklistItems = ["Brakes","Steering","Electrical","Wheel","Lights"];
 
 /* --- UI helpers --- */
 function show(el){ el.style.display = "block"; }
 function hide(el){ el.style.display = "none"; }
-
 let showAllMHEs = false;
-
-window.toggleAllMHEs = function(){
-  showAllMHEs = !showAllMHEs;
-  document.getElementById("toggleAllMHEs").textContent = showAllMHEs ? "View Only QR MHE" : "View All MHEs";
-  loadTable();
-}
-
-
+window.toggleAllMHEs = function(){ showAllMHEs = !showAllMHEs; document.getElementById("toggleAllMHEs").textContent = showAllMHEs ? "View Only QR MHE" : "View All MHEs"; loadTable(); };
 
 /* --- ROLE TOGGLE --- */
 window.toggleRole = function(){
@@ -158,380 +126,298 @@ window.toggleRole = function(){
   const form = document.getElementById("form-section");
   const view = document.getElementById("view-section");
   
-  if(role === "driver"){
-    show(form); hide(view);
-    loadTodayForDriver();
-  } 
+  if(role === "driver"){ show(form); hide(view); loadTodayForDriver(); } 
   else if(role === "supervisor"){
-    // --- NEW: ask for passkey ---
     const passkey = prompt("Enter Supervisor Passkey:");
-    const correctKey = "SUP123"; // <-- set your desired passkey here
-    if(passkey !== correctKey){
-      alert("❌ Incorrect passkey! Access denied.");
-      document.getElementById("roleSelect").value = ""; // reset role selection
-      hide(form); hide(view);
-      return;
-    }
-    // --- end passkey check ---
-    
-    hide(form); show(view);
-    populateMonths();
-    setTimeout(()=> loadTable(), 100);
-  } 
-  else {
-    hide(form); hide(view);
-  }
+    const correctKey = "SUP123";
+    if(passkey !== correctKey){ alert("❌ Incorrect passkey!"); document.getElementById("roleSelect").value = ""; hide(form); hide(view); return; }
+    hide(form); show(view); populateMonths(); setTimeout(()=> loadTable(),100);
+  } else { hide(form); hide(view); }
 };
 
-/* --- UTILS: date keys --- */
-function getTodayParts(){
-  const now = new Date();
-  const day = String(now.getDate());
-  const monthKey = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
-  const isoTime = now.toISOString();
-  const pretty = now.toLocaleString();
-  return { day, monthKey, isoTime, pretty };
-}
+/* --- UTILS --- */
+function getTodayParts(){ const now = new Date(); return { day:String(now.getDate()), monthKey:now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0"), isoTime:now.toISOString(), pretty:now.toLocaleString() }; }
+function ensureMheIdPresent(){ if(!MHE_ID){ alert("⚠️ MHE ID missing! Scan valid MHE QR."); document.getElementById("roleSelect").value=""; hide(document.getElementById("form-section")); hide(document.getElementById("view-section")); return false;} return true; }
 
-/* --- ENFORCE MHE_ID exists --- */
-function ensureMheIdPresent(){
-  if(!MHE_ID){
-    alert("⚠️ MHE ID missing! Please scan a valid MHE QR (like ?mhe_id=MHE1). Submission blocked.");
-    // disable both UI bits
-    document.getElementById("roleSelect").value = "";
-    hide(document.getElementById("form-section"));
-    hide(document.getElementById("view-section"));
-    return false;
+/* --- FETCH DRIVER ASSIGNED FROM KEY HOLDER --- */
+async function fetchAssignedDriver(){
+  if(!ensureMheIdPresent()) return null;
+  
+  try{
+    const assignmentRef = doc(db,"assignments",MHE_ID);  // doc ID = MHE1, MHE2, etc
+    const snap = await getDoc(assignmentRef);
+    if(!snap.exists()) return null;
+
+    const data = snap.data();
+    if(data.active && data.driver){ 
+        document.getElementById("driverName").value = data.driver; 
+        window.currentDriver = data.driver;  // save globally
+        return data.driver; 
+    }
+  }catch(err){
+    console.error("Error fetching driver:", err);
   }
-  return true;
+  return null;
 }
 
-/* --- LOAD today's data into driver form (if exists) --- */
+/* --- LOAD DRIVER TODAY --- */
 async function loadTodayForDriver(){
   if(!ensureMheIdPresent()) return;
-  const { day, monthKey } = getTodayParts();
-  const ref = doc(db, "checklists", monthKey, "MHEs", MHE_ID);
-  const snap = await getDoc(ref);
-  // reset UI
-  document.getElementById("driverMeta").textContent = "";
-  for(const it of checklistItems) document.getElementById(it).checked = false;
-  document.getElementById("driverRemark").value = "";
-
-  if(snap.exists()){
-    const data = snap.data();
-    const submittedDrivers = data.submittedDrivers || {};
-    const checklist = data.checklist || {};
-    const approvals = data.approvals || {};
-    const todayDrivers = submittedDrivers[day] || [];
-
-    // If someone submitted today, but we want current driver to edit own record:
-    // Prefill if driverName matches any submitted driver (we don't know driver name yet).
-    // So if driver enters name then calls checkAlreadySubmitted() which will prefill.
-    // For better UX, if only one driver in today's list, prefill the checkboxes for that driver.
-    if(todayDrivers.length === 1){
-      const onlyDriver = todayDrivers[0];
-      // Prefill checkboxes from checklist data for that driver
-      for(const it of checklistItems){
-        const mark = checklist[it]?.[day] || "✖";
-        document.getElementById(it).checked = (mark === "✔");
-      }
-      document.getElementById("driverMeta").textContent = `Last submitted by ${onlyDriver} (you can update).`;
-    }
+  const assignedDriver = await fetchAssignedDriver();
+  if(!assignedDriver){
+      alert("⚠️ No driver assigned via Key Holder. Pick key first!");
+      clearDriverForm();
+      return;
   }
-}
-
-/* --- CHECK ALREADY SUBMITTED WHEN DRIVER ATTEMPTS --- */
-async function checkAlreadySubmitted() {
-  if(!ensureMheIdPresent()) return false;
-  const driverNameInput = document.getElementById("driverName").value.trim();
-  if(!driverNameInput){ alert("Driver Name/ID is required!"); return false; }
-  window.currentDriver = driverNameInput;
 
   const { day, monthKey } = getTodayParts();
-  const mheDocRef = doc(db,"checklists",monthKey,"MHEs",MHE_ID);
-  const snap = await getDoc(mheDocRef);
+  const ref = doc(db,"checklists",monthKey,"MHEs",MHE_ID);
+  const snap = await getDoc(ref);
+
+  document.getElementById("driverMeta").textContent = "";
+  for(const it of checklistItems) document.getElementById(it).checked=false;
+  document.getElementById("driverRemark").value="";
 
   if(snap.exists()){
     const data = snap.data();
     const submittedDrivers = data.submittedDrivers||{};
-    const todayDrivers = submittedDrivers[day] || [];
-
-    // If driver already submitted, prefill their values so they can update (overwrite)
-    if(todayDrivers.includes(driverNameInput)){
-      // prefill checklist for that driver
-      for(let item of checklistItems){
-        const mark = data.checklist?.[item]?.[day] || "✖";
-        document.getElementById(item).checked = (mark === "✔");
+    const checklist = data.checklist||{};
+    const todayDrivers = submittedDrivers[day]||[];
+    if(todayDrivers.includes(assignedDriver)){
+      for(const it of checklistItems){ 
+        document.getElementById(it).checked = checklist[it]?.[day]==="✔"; 
       }
-      document.getElementById("driverRemark").value = data.remarks?.[day]?.[driverNameInput] || "";
-      document.getElementById("driverMeta").textContent = `You already submitted today — updating will overwrite your today's entry.`;
-      return true; // allow update (we'll overwrite)
+      document.getElementById("driverRemark").value = data.remarks?.[day]?.[assignedDriver]||"";
+      document.getElementById("driverMeta").textContent = `You already submitted today — updating will overwrite entry.`;
     }
   }
-  return true; // allowed to submit (new)
 }
 
-/* --- SUBMIT / UPDATE --- */
+/* --- SUBMIT --- */
 async function submitForm(){
   if(!ensureMheIdPresent()) return;
-  const allowed = await checkAlreadySubmitted();
-  if(!allowed) return;
-
-  const driver = (document.getElementById("driverName").value || "").trim();
+  const driver = window.currentDriver || document.getElementById("driverName").value.trim();
   if(!driver){ alert("Driver Name/ID required."); return; }
 
-  const remark = (document.getElementById("driverRemark").value || "").trim();
+  const remark = document.getElementById("driverRemark").value.trim();
   const { day, monthKey, isoTime, pretty } = getTodayParts();
-
-  const mheDocRef = doc(db, "checklists", monthKey, "MHEs", MHE_ID);
+  const mheDocRef = doc(db,"checklists",monthKey,"MHEs",MHE_ID);
   const snap = await getDoc(mheDocRef);
-  let data = snap.exists() ? snap.data() : { checklist:{}, submittedDrivers:{}, approvals:{}, remarks:{} };
+  let data = snap.exists()?snap.data():{checklist:{},submittedDrivers:{},approvals:{},remarks:{},status:{}};
 
-  // write checklist marks for today (overwrite today's marks)
-  for(let it of checklistItems){
-    const checked = document.getElementById(it).checked ? "✔" : "✖";
-    if(!data.checklist[it]) data.checklist[it] = {};
-    data.checklist[it][day] = checked;
+  for(let it of checklistItems){ 
+      data.checklist[it] = data.checklist[it]||{}; 
+      data.checklist[it][day] = document.getElementById(it).checked?"✔":"✖"; 
   }
 
-  // ensure submittedDrivers[day] contains this driver (avoid duplicates)
-  if(!data.submittedDrivers[day]) data.submittedDrivers[day] = [];
+  data.submittedDrivers[day] = data.submittedDrivers[day]||[];
   if(!data.submittedDrivers[day].includes(driver)) data.submittedDrivers[day].push(driver);
 
-  // record remarks nested by day -> driver
-  if(!data.remarks) data.remarks = {};
-  if(!data.remarks[day]) data.remarks[day] = {};
+  data.remarks[day] = data.remarks[day]||{}; 
   data.remarks[day][driver] = remark;
 
-  // status tracking: for this driver-day: set to Submitted and store metadata
-  if(!data.status) data.status = {};
-  if(!data.status[day]) data.status[day] = {};
-  data.status[day][driver] = { state: "Submitted", submittedBy: driver, submittedAt: isoTime };
+  data.status[day] = data.status[day]||{}; 
+  data.status[day][driver] = { state:"Submitted", submittedBy:driver, submittedAt:isoTime };
 
-  // approvals remain (if previously approved, keep as-is) - but we reset approval when new submission
-  if(!data.approvals) data.approvals = {};
-  if(!data.approvals[day]) data.approvals[day] = {};
-  // reset any previous approval for this driver for today to Pending (because driver updated)
-  data.approvals[day][driver] = { status: "Pending" };
+  data.approvals[day] = data.approvals[day]||{}; 
+  data.approvals[day][driver] = { status:"Pending" };
 
-  // save
-  if(snap.exists()) await updateDoc(mheDocRef, data);
-  else await setDoc(mheDocRef, data);
-
+  if(snap.exists()) await updateDoc(mheDocRef,data); 
+  else await setDoc(mheDocRef,data);
+// deactivate assignment in Key Holder collection// 
+// const assignmentRef = doc(db,"assignments",MHE_ID);// 
+// await updateDoc(assignmentRef,{ active:false });// 
   alert("Checklist submitted/updated for today ✅");
-  // show meta
   document.getElementById("driverMeta").textContent = `Submitted by ${driver} at ${pretty}. Status: Submitted`;
-  // optionally hide form or keep visible for edits
 }
 
-/* --- CLEAR driver form --- */
-window.clearDriverForm = function(){
-  document.getElementById("driverName").value = "";
-  for(const it of checklistItems) document.getElementById(it).checked = false;
-  document.getElementById("driverRemark").value = "";
-  document.getElementById("driverMeta").textContent = "";
-};
+/* --- CLEAR FORM --- */
+window.clearDriverForm = function(){ document.getElementById("driverName").value=""; for(const it of checklistItems) document.getElementById(it).checked=false; document.getElementById("driverRemark").value=""; document.getElementById("driverMeta").textContent=""; }
 
-/* --- APPROVE / REJECT (Supervisor) --- */
+/* --- POPULATE MONTH DROPDOWN --- */
+function populateMonths(){
+    const monthSelect = document.getElementById("monthSelect");
+    monthSelect.innerHTML = "";
+    const now = new Date();
+    for(let i=0;i<12;i++){
+        const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+        const val = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+        const text = d.toLocaleString('default',{month:'long', year:'numeric'});
+        const option = document.createElement("option");
+        option.value = val;
+        option.textContent = text;
+        monthSelect.appendChild(option);
+    }
+}
+
+/* --- LOAD SUPERVISOR TABLE --- */
+async function loadTable(){
+    if(!ensureMheIdPresent()) return;
+
+    const monthKey = document.getElementById("monthSelect").value;
+    if(!monthKey) return;
+    const table = document.getElementById("submissionTable");
+    table.innerHTML = "";
+
+    const monthRef = collection(db,"checklists",monthKey,"MHEs");
+    const snap = await getDocs(monthRef);
+
+    const allData = [];
+    snap.forEach(docSnap=>{
+        const data = docSnap.data();
+        allData.push({ mheId: docSnap.id, ...data });
+    });
+
+    // Filter if showAllMHEs = false
+    const displayData = showAllMHEs ? allData : allData.filter(d=>d.mheId===MHE_ID);
+
+    // Build table header
+    const thead = document.createElement("thead");
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<th>MHE</th><th>Driver</th><th>Day</th><th>Brakes</th><th>Steering</th><th>Electrical</th><th>Wheel</th><th>Lights</th><th>Remark</th><th>Status</th><th>Approve</th><th>Reject</th>`;
+    thead.appendChild(tr);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    for(const mheData of displayData){
+        const {mheId, checklist={}, remarks={}, approvals={}, status={}, submittedDrivers={}} = mheData;
+        for(const day in submittedDrivers){
+            for(const driver of submittedDrivers[day]){
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${mheId}</td>
+                    <td>${driver}</td>
+                    <td>${day}</td>
+                    <td>${checklist.Brakes?.[day]||""}</td>
+                    <td>${checklist.Steering?.[day]||""}</td>
+                    <td>${checklist.Electrical?.[day]||""}</td>
+                    <td>${checklist.Wheel?.[day]||""}</td>
+                    <td>${checklist.Lights?.[day]||""}</td>
+                    <td>${remarks?.[day]?.[driver]||""}</td>
+                    <td>${approvals?.[day]?.[driver]?.status||"Pending"}</td>
+                    <td><button onclick="approveChecklist('${mheId}','${driver}','${day}')">✔</button></td>
+                    <td><button onclick="rejectChecklist('${mheId}','${driver}','${day}')">✖</button></td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+    }
+    table.appendChild(tbody);
+
+    showTodaySubmissionAlert(monthKey);
+}
+
+/* --- APPROVE / REJECT --- */
 async function approveChecklist(mheId, driver, day){
-  if(!ensureMheIdPresent()) return;
-  const supervisor = prompt("Enter your Supervisor Name/ID for approval:");
-  if(!supervisor){ alert("Supervisor Name/ID required to approve."); return; }
-  const monthKey = document.getElementById("monthSelect").value;
-  const mheDocRef = doc(db,"checklists",monthKey,"MHEs",mheId);
-  const snap = await getDoc(mheDocRef);
-  if(!snap.exists()) return;
-  let data = snap.data();
+    const monthKey = document.getElementById("monthSelect").value;
+    const docRef = doc(db,"checklists",monthKey,"MHEs",mheId);
+    const snap = await getDoc(docRef);
+    if(!snap.exists()) return;
 
-  // set approval and status
-  if(!data.approvals) data.approvals = {};
-  if(!data.approvals[day]) data.approvals[day] = {};
-  data.approvals[day][driver] = { status:"Approved", approvedBy: supervisor, approvedAt: new Date().toISOString() };
+    const data = snap.data();
+    data.approvals = data.approvals||{};
+    data.approvals[day] = data.approvals[day]||{};
+    data.approvals[day][driver] = { status:"Approved", approvedAt:(new Date()).toISOString() };
 
-  if(!data.status) data.status = {};
-  if(!data.status[day]) data.status[day] = {};
-  data.status[day][driver] = { state: "Approved", approvedBy: supervisor, approvedAt: new Date().toISOString() };
+    data.status = data.status||{};
+    data.status[day] = data.status[day]||{};
+    data.status[day][driver].state = "Approved";
 
-  await updateDoc(mheDocRef, data);
-  loadTable();
+    await updateDoc(docRef,data);
+    alert(`✅ Checklist approved for ${driver} on ${day}`);
+    loadTable();
 }
 
 async function rejectChecklist(mheId, driver, day){
-  if(!ensureMheIdPresent()) return;
-  const supervisor = prompt("Enter your Supervisor Name/ID for rejection:");
-  if(!supervisor){ alert("Supervisor Name/ID required to reject."); return; }
-  const reason = prompt("Enter rejection remark (reason):", "");
-  const monthKey = document.getElementById("monthSelect").value;
-  const mheDocRef = doc(db,"checklists",monthKey,"MHEs",mheId);
-  const snap = await getDoc(mheDocRef);
-  if(!snap.exists()) return;
-  let data = snap.data();
+    const monthKey = document.getElementById("monthSelect").value;
+    const docRef = doc(db,"checklists",monthKey,"MHEs",mheId);
+    const snap = await getDoc(docRef);
+    if(!snap.exists()) return;
 
-  if(!data.approvals) data.approvals = {};
-  if(!data.approvals[day]) data.approvals[day] = {};
-  data.approvals[day][driver] = { status:"Rejected", rejectedBy: supervisor, rejectedAt: new Date().toISOString(), remark: reason || "" };
+    const data = snap.data();
+    data.approvals = data.approvals||{};
+    data.approvals[day] = data.approvals[day]||{};
+    data.approvals[day][driver] = { status:"Rejected", rejectedAt:(new Date()).toISOString() };
 
-  if(!data.status) data.status = {};
-  if(!data.status[day]) data.status[day] = {};
-  data.status[day][driver] = { state: "Rejected", rejectedBy: supervisor, rejectedAt: new Date().toISOString(), remark: reason || "" };
+    data.status = data.status||{};
+    data.status[day] = data.status[day]||{};
+    data.status[day][driver].state = "Rejected";
 
-  await updateDoc(mheDocRef, data);
-  loadTable();
+    await updateDoc(docRef,data);
+    alert(`❌ Checklist rejected for ${driver} on ${day}`);
+    loadTable();
 }
 
-/* --- MONTHS DROPDOWN (last 6 months) --- */
-function populateMonths(){
-  const select = document.getElementById("monthSelect");
-  if(select.options.length) return; // already populated
-  const now = new Date();
-  for(let i=0;i<6;i++){
-    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-    const opt = document.createElement("option");
-    opt.value = key;
-    opt.textContent = d.toLocaleString("default",{month:"long", year:"numeric"});
-    select.appendChild(opt);
-  }
-  // select current month by default
-  select.value = getTodayParts().monthKey;
-}
-
-async function loadTable(){
-  if(!ensureMheIdPresent()) return;
-  const monthKey = document.getElementById("monthSelect").value;
-  if(!monthKey) return;
-  const mheColRef = collection(db,"checklists",monthKey,"MHEs");
-  const mheSnap = await getDocs(mheColRef);
-
-  const table = document.getElementById("submissionTable");
-  table.innerHTML = "";
-
-  if(mheSnap.empty){
-    table.innerHTML = "<tr><td>No data for this month</td></tr>";
-    return;
-  }
-
-  // days in selected month
-  const year = parseInt(monthKey.split("-")[0]);
-  const month = parseInt(monthKey.split("-")[1])-1; // JS month 0-indexed
-  const today = new Date();
-  const isCurrentMonth = (today.getFullYear() === year && today.getMonth() === month);
-  const lastDay = isCurrentMonth ? today.getDate() : new Date(year, month+1, 0).getDate();
-
-  // header
-  let header = "<thead><tr><th>MHE ID</th><th>Item</th><th>Driver</th><th>Today Status</th>";
-  for(let d=1; d<=lastDay; d++) header += `<th>${d}</th>`;
-  header += "<th>Approve</th><th>Reject</th></tr></thead>";
-  table.innerHTML += header;
-  table.innerHTML += "<tbody></tbody>";
-  const tbody = table.querySelector("tbody");
-
-for(let mheDoc of mheSnap.docs){
-    const mheId = mheDoc.id;
-    if(!showAllMHEs && mheId !== MHE_ID) continue;
-    const data = mheDoc.data() || {};
-    const checklist = data.checklist || {};
-    const approvals = data.approvals || {};
-    const submittedDrivers = data.submittedDrivers || {};
-    const status = data.status || {};
-    
-    
-    for(let item of checklistItems){
-      for(let day in submittedDrivers){
-        for(let driver of submittedDrivers[day]){
-          let row = document.createElement("tr");
-          const todayState = status[day]?.[driver]?.state || (approvals[day]?.[driver]?.status ? approvals[day][driver].status : "Submitted");
-          let badge = `<span class="status-badge `;
-          if(todayState === "Pending") badge += `status-pending">Pending</span>`;
-          else if(todayState === "Submitted") badge += `status-submitted">Submitted</span>`;
-          else if(todayState === "Approved") badge += `status-approved">Approved</span>`;
-          else if(todayState === "Rejected") badge += `status-rejected">Rejected</span>`;
-          else badge += `status-submitted">${todayState}</span>`;
-
-          row.innerHTML = `<td>${mheId}</td><td>${item}</td><td>${driver}</td><td>${badge}</td>`;
-
-          // day-by-day marks (sirf 1 se lastDay tak)
-          for(let d=1; d<=lastDay; d++){
-            const mark = checklist[item]?.[String(d)] || "-";
-            row.innerHTML += `<td>${mark}</td>`;
-          }
-
-          // approve / reject buttons
-          row.innerHTML += `<td><button class="approve-btn" data-mhe="${mheId}" data-driver="${driver}" data-day="${day}">Approve</button></td>`;
-          row.innerHTML += `<td><button class="reject-btn" data-mhe="${mheId}" data-driver="${driver}" data-day="${day}">Reject</button></td>`;
-          tbody.appendChild(row);
-        }
-      }
-    }
-  }
-
-  // attach listeners
-  document.querySelectorAll(".approve-btn").forEach(btn=>{
-    btn.addEventListener("click", async ()=> {
-      await approveChecklist(btn.dataset.mhe, btn.dataset.driver, btn.dataset.day);
-    });
-  });
-  document.querySelectorAll(".reject-btn").forEach(btn=>{
-    btn.addEventListener("click", async ()=> {
-      await rejectChecklist(btn.dataset.mhe, btn.dataset.driver, btn.dataset.day);
-    });
-  });
-
-  showTodaySubmissionAlert(monthKey);
-}
-
-
-/* --- Show Today Not-Submitted Alert for this MHE only --- */
+/* --- TODAY ALERT --- */
 async function showTodaySubmissionAlert(monthKey){
-  const el = document.getElementById("todayAlert");
-  el.innerHTML = "";
-  const { day } = getTodayParts();
-  const mheDocRef = doc(db, "checklists", monthKey, "MHEs", MHE_ID);
-  const snap = await getDoc(mheDocRef);
-  if(!snap.exists()){
-    el.innerHTML = `<div class="alert">⚠️ No submissions for ${MHE_ID} this month. Not submitted today.</div>`;
-    return;
-  }
-  const data = snap.data();
-  const submittedDrivers = data.submittedDrivers || {};
-  const todayDrivers = submittedDrivers[day] || [];
-  if(todayDrivers.length === 0){
-    el.innerHTML = `<div class="alert">⚠️ ${MHE_ID} — Not submitted today.</div>`;
-  } else {
-    // show latest status summary for today
-    const status = data.status?.[day] || {};
-    // combine drivers statuses
-    let summaryHtml = `<div class="ok">✅ ${MHE_ID} submissions today: `;
-    summaryHtml += todayDrivers.map(d => {
-      const s = status[d]?.state || (data.approvals?.[day]?.[d]?.status || "Submitted");
-      return `${d} (${s})`;
-    }).join(", ");
-    summaryHtml += `</div>`;
-    el.innerHTML = summaryHtml;
-  }
+    const { day } = getTodayParts();
+    const table = document.getElementById("submissionTable");
+    const rows = table.querySelectorAll("tbody tr");
+    let alertText = "";
+    rows.forEach(row=>{
+        if(row.children[2].textContent === day){
+            const status = row.children[9].textContent;
+            if(status === "Pending") alertText = "⚠️ Some submissions today are still pending approval.";
+        }
+    });
+    document.getElementById("todayAlert").innerHTML = alertText ? `<div class="alert">${alertText}</div>` : "";
 }
+/* --- INIT --- */
+(function init(){ populateMonths(); })();
 
-/* --- INITIALIZE on load --- */
-(function init(){
-  // role selection visible. If MHE_ID missing, warn now.
-  if(!MHE_ID){
-    // do nothing else; ensure user can't submit
-    console.warn("MHE_ID missing in URL. Provide ?mhe_id=MHE1 etc.");
-  }
-  // populate months so supervisor selection is ready
-  populateMonths();
-  // Also try to prefill driver if only one submission exists today (UX)
-  // but only if role driver chosen (handled in toggleRole)
-})();
-  
-/* expose these functions */
 window.submitForm = submitForm;
 window.loadTable = loadTable;
 window.approveChecklist = approveChecklist;
 window.rejectChecklist = rejectChecklist;
 window.populateMonths = populateMonths;
 window.loadTodayForDriver = loadTodayForDriver;
+window.downloadExcel = async function(){
+  const monthKey = document.getElementById("monthSelect").value;
+  if(!monthKey){ alert("Select month first"); return; }
+
+  const monthRef = collection(db,"checklists",monthKey,"MHEs");
+  const snap = await getDocs(monthRef);
+
+  const wb = XLSX.utils.book_new();
+
+  snap.forEach(docSnap=>{
+    const data = docSnap.data();
+    const mheId = docSnap.id;
+
+    // Prepare rows: Date + Checklist + Remarks + Status + Approval
+    const rows = [];
+    rows.push(["Date","Driver","Brakes","Steering","Electrical","Wheel","Lights","Remark","Status","Approval"]);
+
+    // Dates 1–31
+    for(let d=1; d<=31; d++){
+      const day = String(d);
+      if(!data.checklist) continue;
+
+      const drivers = data.submittedDrivers?.[day]||[];
+      drivers.forEach(driver=>{
+        rows.push([
+          day,
+          driver,
+          data.checklist.Brakes?.[day]||"",
+          data.checklist.Steering?.[day]||"",
+          data.checklist.Electrical?.[day]||"",
+          data.checklist.Wheel?.[day]||"",
+          data.checklist.Lights?.[day]||"",
+          data.remarks?.[day]?.[driver]||"",
+          data.status?.[day]?.[driver]?.state||"",
+          data.approvals?.[day]?.[driver]?.status||""
+        ]);
+      });
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, mheId);
+  });
+
+  XLSX.writeFile(wb, `MHE_Checklist_${monthKey}.xlsx`);
+};
+
+
 </script>
 </body>
 </html>
-
