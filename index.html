@@ -2,179 +2,182 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MHE Checksheet</title>
+  <title>MHE Checklist</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f4f7f9;
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      justify-content: center;
-    }
-    .container {
-      max-width: 500px;
-      width: 100%;
-      background: #fff;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-      animation: fadeIn 0.6s ease;
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #333;
-    }
-    label {
-      display: flex;
-      align-items: center;
-      margin: 12px 0;
-      font-size: 16px;
-    }
-    input[type="checkbox"] {
-      margin-right: 10px;
-      transform: scale(1.3);
-    }
-    input[type="text"] {
-      width: 100%;
-      padding: 10px;
-      margin-top: 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 15px;
-    }
-    button {
-      width: 100%;
-      padding: 12px;
-      background: #4CAF50;
-      color: white;
-      font-size: 16px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-top: 15px;
-      transition: 0.3s;
-    }
-    button:hover {
-      background: #45a049;
-    }
-    .message {
-      text-align: center;
-      margin: 15px 0;
-      font-weight: bold;
-      color: #d9534f;
-    }
-    .view-section {
-      margin-top: 20px;
-      text-align: center;
-    }
-    .submission-card {
-      background: #f9f9f9;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 10px;
-      animation: slideUp 0.5s ease;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h2 { color: #2c3e50; }
+    .checklist { margin: 20px 0; }
+    .checklist label { display: block; margin: 5px 0; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    table, th, td { border: 1px solid #ccc; text-align: center; }
+    th, td { padding: 8px; }
+    select, button, input { margin: 5px; padding: 6px; }
   </style>
 </head>
 <body>
+  <h2>MHE Daily Checklist</h2>
 
-<div class="container">
-  <h2>MHE Checksheet</h2>
-  <p><strong>MHE:</strong> <span id="currentMHE"></span></p>
-
-  <div id="formSection">
-    <label><input type="checkbox" id="brakes"> Brakes</label>
-    <label><input type="checkbox" id="steering"> Steering</label>
-    <label><input type="checkbox" id="electrical_system"> Electrical System</label>
-    <label><input type="checkbox" id="wheel"> Wheel</label>
-    <label><input type="checkbox" id="light"> Light</label>
-    <label>Remark: <input type="text" id="remark" placeholder="Enter remark"></label>
+  <!-- Form Section -->
+  <div id="form-section">
+    <h3>Fill Checklist (Today)</h3>
+    <label>Driver Name: <input type="text" id="driverName" placeholder="Enter Driver Name"></label>
+    <div class="checklist">
+      <label><input type="checkbox" id="Brakes"> Brakes</label>
+      <label><input type="checkbox" id="Steering"> Steering</label>
+      <label><input type="checkbox" id="Electrical"> Electrical System</label>
+      <label><input type="checkbox" id="Wheel"> Wheel</label>
+      <label><input type="checkbox" id="Lights"> Lights</label>
+    </div>
     <button onclick="submitForm()">Submit</button>
   </div>
 
-  <div class="message" id="statusMsg"></div>
-
-  <div class="view-section">
-    <button style="background:#007BFF;" onclick="loadSubmissions()">View Submissions</button>
+  <!-- View Section -->
+  <div id="view-section">
+    <h3>View Submissions</h3>
+    <select id="monthSelect" onchange="loadTable()"></select>
+    <table id="submissionTable"></table>
   </div>
 
-  <div id="submissionsList"></div>
-</div>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getFirestore, doc, collection, getDoc, setDoc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-<script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzWfEQvnpu1j6ozieT6KJ20KxkGmLWVi6PF3xV0P8sTI89delgrsdlj-XtwUifDkgHduA/exec"; // Replace with Apps Script URL
+    const firebaseConfig = {
+      apiKey: "AIzaSyBx_26h3CD_fRCILcmWLuDUc8v8pzH8Sxo",
+      authDomain: "mhe-checksheet.firebaseapp.com",
+      projectId: "mhe-checksheet",
+      storageBucket: "mhe-checksheet.appspot.com",
+      messagingSenderId: "413824836416",
+      appId: "1:413824836416:web:63faa90294e161363510a5",
+      measurementId: "G-ZQ77KHXXVB"
+    };
 
-const urlParams = new URLSearchParams(window.location.search);
-const currentMHE = urlParams.get('mhe_id');
-document.getElementById('currentMHE').innerText = currentMHE || "Unknown";
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-async function checkToday() {
-  if (!currentMHE) return;
-  const res = await fetch(`${WEB_APP_URL}?action=check&mhe_id=${currentMHE}`);
-  const data = await res.json();
-  if (data.filled) {
-    document.getElementById("formSection").style.display = "none";
-    document.getElementById("statusMsg").innerText = "✅ Already Submitted Today";
-  }
-}
-checkToday();
+    const urlParams = new URLSearchParams(window.location.search);
+    const MHE_ID = urlParams.get("mhe_id") || "MHE1";
 
-async function submitForm() {
-  const formData = new URLSearchParams({
-    mhe_id: currentMHE,
-    brakes: document.getElementById("brakes").checked,
-    steering: document.getElementById("steering").checked,
-    electrical_system: document.getElementById("electrical_system").checked,
-    wheel: document.getElementById("wheel").checked,
-    light: document.getElementById("light").checked,
-    remark: document.getElementById("remark").value.trim()
-  });
+    const checklistItems = ["Brakes", "Steering", "Electrical", "Wheel", "Lights"];
 
-  const res = await fetch(WEB_APP_URL, { method: "POST", body: formData });
-  const result = await res.json();
-  if (result.status === "success") {
-    document.getElementById("statusMsg").innerText = "✅ Submitted Successfully!";
-    document.getElementById("formSection").style.display = "none";
-  } else {
-    document.getElementById("statusMsg").innerText = "❌ " + result.msg;
-  }
-}
+    // ---- CHECK ALREADY SUBMITTED ----
+    async function checkAlreadySubmitted() {
+      const driverNameInput = document.getElementById("driverName").value.trim();
+      if (!driverNameInput) {
+        alert("Driver Name is required!");
+        return false;
+      }
+      window.currentDriver = driverNameInput;
 
-async function loadSubmissions() {
-  const res = await fetch(`${WEB_APP_URL}?action=view&mhe_id=${currentMHE}`);
-  const data = await res.json();
-  const listDiv = document.getElementById("submissionsList");
-  listDiv.innerHTML = "";
+      const today = new Date();
+      const day = today.getDate().toString();
+      const monthKey = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0");
 
-  const today = new Date().getDate();
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    const div = document.createElement("div");
-    div.className = "submission-card";
-    div.innerHTML = `
-      <strong>Date:</strong> ${today}-${new Date().getMonth()+1}<br>
-      <strong>Brakes:</strong> ${row[today] || ""} | 
-      <strong>Steering:</strong> ${data[2][today] || ""} |
-      <strong>Electrical:</strong> ${data[3][today] || ""} |
-      <strong>Wheel:</strong> ${data[4][today] || ""} |
-      <strong>Light:</strong> ${data[5][today] || ""}<br>
-      <strong>Remark:</strong> ${data[6][today] || ""}
-    `;
-    listDiv.appendChild(div);
-  }
-}
-</script>
+      const mheDocRef = doc(db, "checklists", monthKey, "MHEs", MHE_ID);
+      const snap = await getDoc(mheDocRef);
 
+      if (snap.exists()) {
+        const data = snap.data();
+        const submittedDrivers = data.submittedDrivers || {};
+        const todayDrivers = submittedDrivers[day] || [];
+        if (todayDrivers.includes(driverNameInput)) {
+          alert(`Driver ${driverNameInput} has already submitted the checklist today ✅`);
+          document.getElementById("form-section").style.display = "none";
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // ---- FORM SUBMIT ----
+    async function submitForm() {
+      const isAllowed = await checkAlreadySubmitted();
+      if (!isAllowed) return;
+
+      const today = new Date();
+      const day = today.getDate().toString();
+      const monthKey = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0");
+
+      const mheDocRef = doc(db, "checklists", monthKey, "MHEs", MHE_ID);
+      const snap = await getDoc(mheDocRef);
+      let data = snap.exists() ? snap.data() : { checklist: {}, submittedDrivers: {} };
+
+      for (let item of checklistItems) {
+        const checked = document.getElementById(item).checked ? "✔" : "✖";
+        if (!data.checklist[item]) data.checklist[item] = {};
+        data.checklist[item][day] = checked;
+      }
+
+      if (!data.submittedDrivers[day]) data.submittedDrivers[day] = [];
+      data.submittedDrivers[day].push(window.currentDriver);
+
+      if (snap.exists()) {
+        await updateDoc(mheDocRef, data);
+      } else {
+        await setDoc(mheDocRef, data);
+      }
+
+      alert("Checklist submitted for today ✅");
+      document.getElementById("form-section").style.display = "none";
+    }
+
+    // ---- POPULATE MONTH DROPDOWN ----
+    function populateMonths() {
+      const select = document.getElementById("monthSelect");
+      const now = new Date();
+      for (let i = 0; i < 6; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = d.toLocaleString("default", { month: "long", year: "numeric" });
+        select.appendChild(opt);
+      }
+    }
+
+    // ---- LOAD TABLE ----
+    async function loadTable() {
+      const monthKey = document.getElementById("monthSelect").value;
+      const mheColRef = collection(db, "checklists", monthKey, "MHEs");
+      const mheSnap = await getDocs(mheColRef);
+
+      const table = document.getElementById("submissionTable");
+      table.innerHTML = "";
+
+      if (mheSnap.empty) {
+        table.innerHTML = "<tr><td>No data for this month</td></tr>";
+        return;
+      }
+
+      const daysInMonth = new Date(parseInt(monthKey.split("-")[0]), parseInt(monthKey.split("-")[1]), 0).getDate();
+
+      let header = "<tr><th>MHE ID</th><th>Item</th>";
+      for (let d = 1; d <= daysInMonth; d++) header += `<th>${d}</th>`;
+      header += "</tr>";
+      table.innerHTML += header;
+
+      for (let mheDoc of mheSnap.docs) {
+        const mheId = mheDoc.id;
+        const data = mheDoc.data().checklist || {};
+        for (let item of checklistItems) {
+          let row = `<tr><td>${mheId}</td><td>${item}</td>`;
+          for (let d = 1; d <= daysInMonth; d++) {
+            const mark = data[item]?.[d.toString()] || "-";
+            row += `<td>${mark}</td>`;
+          }
+          row += "</tr>";
+          table.innerHTML += row;
+        }
+      }
+    }
+
+    // Initialize
+    populateMonths();
+    loadTable();
+    window.submitForm = submitForm;
+    window.loadTable = loadTable;
+  </script>
 </body>
 </html>
