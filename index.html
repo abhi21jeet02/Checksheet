@@ -42,7 +42,7 @@
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getFirestore, doc, collection, getDoc, setDoc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBx_26h3CD_fRCILcmWLuDUc8v8pzH8Sxo",
@@ -62,7 +62,7 @@
 
     const checklistItems = ["Brakes", "Steering", "Electrical", "Wheel", "Lights"];
 
-    // ---- CHECK ALREADY SUBMITTED ----
+    // ---- CHECK IF DRIVER ALREADY SUBMITTED ----
     async function checkAlreadySubmitted() {
       const driverNameInput = document.getElementById("driverName").value.trim();
       if (!driverNameInput) {
@@ -72,7 +72,7 @@
       window.currentDriver = driverNameInput;
 
       const today = new Date();
-      const day = today.getDate().toString();
+      const day = today.getDate().toString().padStart(2,"0");
       const monthKey = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0");
 
       const mheDocRef = doc(db, "checklists", monthKey, "MHEs", MHE_ID);
@@ -91,25 +91,27 @@
       return true;
     }
 
-    // ---- FORM SUBMIT ----
+    // ---- SUBMIT FORM ----
     async function submitForm() {
       const isAllowed = await checkAlreadySubmitted();
       if (!isAllowed) return;
 
       const today = new Date();
-      const day = today.getDate().toString();
+      const day = today.getDate().toString().padStart(2,"0");
       const monthKey = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0");
 
       const mheDocRef = doc(db, "checklists", monthKey, "MHEs", MHE_ID);
       const snap = await getDoc(mheDocRef);
       let data = snap.exists() ? snap.data() : { checklist: {}, submittedDrivers: {} };
 
+      // Save checklist
       for (let item of checklistItems) {
         const checked = document.getElementById(item).checked ? "✔" : "✖";
         if (!data.checklist[item]) data.checklist[item] = {};
         data.checklist[item][day] = checked;
       }
 
+      // Save driver
       if (!data.submittedDrivers[day]) data.submittedDrivers[day] = [];
       data.submittedDrivers[day].push(window.currentDriver);
 
@@ -121,6 +123,7 @@
 
       alert("Checklist submitted for today ✅");
       document.getElementById("form-section").style.display = "none";
+      loadTable();
     }
 
     // ---- POPULATE MONTH DROPDOWN ----
@@ -137,39 +140,38 @@
       }
     }
 
-    // ---- LOAD TABLE ----
+    // ---- LOAD TABLE FOR CURRENT MHE ----
     async function loadTable() {
       const monthKey = document.getElementById("monthSelect").value;
-      const mheColRef = collection(db, "checklists", monthKey, "MHEs");
-      const mheSnap = await getDocs(mheColRef);
+      const mheDocRef = doc(db, "checklists", monthKey, "MHEs", MHE_ID);
+      const snap = await getDoc(mheDocRef);
 
       const table = document.getElementById("submissionTable");
       table.innerHTML = "";
 
-      if (mheSnap.empty) {
-        table.innerHTML = "<tr><td>No data for this month</td></tr>";
+      if (!snap.exists()) {
+        table.innerHTML = "<tr><td>No data for this MHE this month</td></tr>";
         return;
       }
 
+      const data = snap.data().checklist || {};
       const daysInMonth = new Date(parseInt(monthKey.split("-")[0]), parseInt(monthKey.split("-")[1]), 0).getDate();
 
+      // Header
       let header = "<tr><th>MHE ID</th><th>Item</th>";
       for (let d = 1; d <= daysInMonth; d++) header += `<th>${d}</th>`;
       header += "</tr>";
       table.innerHTML += header;
 
-      for (let mheDoc of mheSnap.docs) {
-        const mheId = mheDoc.id;
-        const data = mheDoc.data().checklist || {};
-        for (let item of checklistItems) {
-          let row = `<tr><td>${mheId}</td><td>${item}</td>`;
-          for (let d = 1; d <= daysInMonth; d++) {
-            const mark = data[item]?.[d.toString()] || "-";
-            row += `<td>${mark}</td>`;
-          }
-          row += "</tr>";
-          table.innerHTML += row;
+      // Rows
+      for (let item of checklistItems) {
+        let row = `<tr><td>${MHE_ID}</td><td>${item}</td>`;
+        for (let d = 1; d <= daysInMonth; d++) {
+          const mark = data[item]?.[d.toString()] || "-";
+          row += `<td>${mark}</td>`;
         }
+        row += "</tr>";
+        table.innerHTML += row;
       }
     }
 
