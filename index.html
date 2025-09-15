@@ -50,29 +50,31 @@
     </select>
   </div>
 
-  <!-- Driver Form -->
-  <div class="card" id="form-section" style="display:none;">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h3 style="margin:0">Fill Checklist (Today)</h3>
-      <div id="todayStatusContainer"></div>
-    </div>
-    <label>Driver Name / ID: <input type="text" id="driverName" placeholder="Auto-filled if assigned from Key Holder"></label>
-    <div class="checklist">
-      <label><input type="checkbox" id="Brakes"> Brakes</label>
-      <label><input type="checkbox" id="Steering"> Steering</label>
-      <label><input type="checkbox" id="Electrical"> Electrical System</label>
-      <label><input type="checkbox" id="Wheel"> Wheel</label>
-      <label><input type="checkbox" id="Lights"> Lights</label>
-    </div>
-    <div style="margin-top:12px;">
-      <label class="muted small">Optional remark: <input type="text" id="driverRemark" placeholder="Add remark (if any)"></label>
-    </div>
-    <div style="display:flex; gap:10px; margin-top:14px;">
-      <button onclick="submitForm()">Submit / Update Today</button>
-      <button onclick="clearDriverForm()">Clear</button>
-    </div>
-    <div id="driverMeta" class="small" style="margin-top:10px;"></div>
+ <!-- Driver Form -->
+<div class="card" id="form-section" style="display:none;">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h3 style="margin:0">Fill Checklist (Today)</h3>
+    <div id="todayStatusContainer"></div>
   </div>
+  <label>Driver Name / ID: 
+    <input type="text" id="driverName" placeholder="Auto-filled if assigned from Key Holder">
+  </label>
+
+  <!-- Checklist container (auto-filled via JS) -->
+  <div class="checklist" id="checklistContainer"></div>
+
+  <div style="margin-top:12px;">
+    <label class="muted small">Optional remark: 
+      <input type="text" id="driverRemark" placeholder="Add remark (if any)">
+    </label>
+  </div>
+  <div style="display:flex; gap:10px; margin-top:14px;">
+    <button onclick="submitForm()">Submit / Update Today</button>
+    <button onclick="clearDriverForm()">Clear</button>
+  </div>
+  <div id="driverMeta" class="small" style="margin-top:10px;"></div>
+</div>
+
 
   <!-- Supervisor View -->
   <div class="card" id="view-section" style="display:none;">
@@ -89,8 +91,12 @@
 </div>
 
     <div id="todayAlert"></div>
-    <table id="submissionTable"></table>
-  </div>
+
+<!-- Wrap supervisor table inside scroll container -->
+<div style="overflow-x:auto; max-width:100%; margin-top:10px;">
+  <table id="submissionTable" style="width:max-content; min-width:100%;"></table>
+</div>
+
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
@@ -112,7 +118,48 @@ const db = getFirestore(app);
 /* --- PARAMETERS & ITEMS --- */
 const urlParams = new URLSearchParams(window.location.search);
 const MHE_ID = urlParams.get("mhe_id");
-const checklistItems = ["Brakes","Steering","Electrical","Wheel","Lights"];
+// ✅ Replace your old checklistItems array with this one
+const checklistItems = [
+  "Reflective jacket",
+  "Safety helmet and Safety shoes",
+  "Driving authorization card",
+  "Fork",
+  "Safety Pin",
+  "Chain",
+  "Head Lamp",
+  "Both Side wheel",
+  "Hydraulic OIL",
+  "Hydraulic cylinder leakage",
+  "Back light tail lamp",
+  "Horn",
+  "Hoist lever",
+  "Tilt lever",
+  "Both side mirror",
+  "Back Horn",
+  "Hand break",
+  "Gear lever",
+  "Steering",
+  "Cleaning",
+  "TYRES",
+  "CHARGING",
+  "FOCUE BLUE LIGHT",
+  "SEAT BELT",
+  "Brake and Accelerator",
+  "Wiring and cables"
+];
+
+/* --- RENDER CHECKLIST --- */
+function renderChecklist(){
+  const container = document.getElementById("checklistContainer");
+  container.innerHTML = "";
+  checklistItems.forEach(item=>{
+    const label = document.createElement("label");
+    label.innerHTML = `<input type="checkbox" id="${item}"> ${item}`;
+    container.appendChild(label);
+  });
+}
+renderChecklist();
+
 
 /* --- UI helpers --- */
 function show(el){ el.style.display = "block"; }
@@ -271,38 +318,41 @@ async function loadTable(){
     // Filter if showAllMHEs = false
     const displayData = showAllMHEs ? allData : allData.filter(d=>d.mheId===MHE_ID);
 
-    // Build table header
-    const thead = document.createElement("thead");
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<th>MHE</th><th>Driver</th><th>Day</th><th>Brakes</th><th>Steering</th><th>Electrical</th><th>Wheel</th><th>Lights</th><th>Remark</th><th>Status</th><th>Approve</th><th>Reject</th>`;
-    thead.appendChild(tr);
-    table.appendChild(thead);
+  // Build table header dynamically
+const thead = document.createElement("thead");
+const tr = document.createElement("tr");
+tr.innerHTML = `<th>MHE</th><th>Driver</th><th>Day</th>`;
+checklistItems.forEach(it=>{
+  tr.innerHTML += `<th>${it}</th>`;
+});
+tr.innerHTML += `<th>Remark</th><th>Status</th><th>Approve</th><th>Reject</th>`;
+thead.appendChild(tr);
+table.appendChild(thead);
 
-    const tbody = document.createElement("tbody");
-    for(const mheData of displayData){
-        const {mheId, checklist={}, remarks={}, approvals={}, status={}, submittedDrivers={}} = mheData;
-        for(const day in submittedDrivers){
-            for(const driver of submittedDrivers[day]){
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${mheId}</td>
-                    <td>${driver}</td>
-                    <td>${day}</td>
-                    <td>${checklist.Brakes?.[day]||""}</td>
-                    <td>${checklist.Steering?.[day]||""}</td>
-                    <td>${checklist.Electrical?.[day]||""}</td>
-                    <td>${checklist.Wheel?.[day]||""}</td>
-                    <td>${checklist.Lights?.[day]||""}</td>
-                    <td>${remarks?.[day]?.[driver]||""}</td>
-                    <td>${approvals?.[day]?.[driver]?.status||"Pending"}</td>
-                    <td><button onclick="approveChecklist('${mheId}','${driver}','${day}')">✔</button></td>
-                    <td><button onclick="rejectChecklist('${mheId}','${driver}','${day}')">✖</button></td>
-                `;
-                tbody.appendChild(tr);
-            }
-        }
+// Build rows
+const tbody = document.createElement("tbody");
+for(const mheData of displayData){
+  const {mheId, checklist={}, remarks={}, approvals={}, status={}, submittedDrivers={}} = mheData;
+  for(const day in submittedDrivers){
+    for(const driver of submittedDrivers[day]){
+      const tr = document.createElement("tr");
+      let rowHtml = `<td>${mheId}</td><td>${driver}</td><td>${day}</td>`;
+      checklistItems.forEach(it=>{
+        rowHtml += `<td>${checklist[it]?.[day]||""}</td>`;
+      });
+      rowHtml += `
+        <td>${remarks?.[day]?.[driver]||""}</td>
+        <td>${approvals?.[day]?.[driver]?.status||"Pending"}</td>
+        <td><button onclick="approveChecklist('${mheId}','${driver}','${day}')">✔</button></td>
+        <td><button onclick="rejectChecklist('${mheId}','${driver}','${day}')">✖</button></td>
+      `;
+      tr.innerHTML = rowHtml;
+      tbody.appendChild(tr);
     }
-    table.appendChild(tbody);
+  }
+}
+table.appendChild(tbody);
+
 
     showTodaySubmissionAlert(monthKey);
 }
@@ -384,31 +434,65 @@ window.downloadExcel = async function(){
     const data = docSnap.data();
     const mheId = docSnap.id;
 
-    // Prepare rows: Date + Checklist + Remarks + Status + Approval
+    // Dates 1–31 (columns)
+    const dates = Array.from({length:31},(_,i)=>String(i+1));
+
+    // Prepare matrix
     const rows = [];
-    rows.push(["Date","Driver","Brakes","Steering","Electrical","Wheel","Lights","Remark","Status","Approval"]);
+    const header = ["Parameters", ...dates];
+    rows.push(header);
 
-    // Dates 1–31
-    for(let d=1; d<=31; d++){
-      const day = String(d);
-      if(!data.checklist) continue;
+    // Parameters list
+    const parameters = [ "Reflective jacket",
+  "Safety helmet and Safety shoes",
+  "Driving authorization card",
+  "Fork",
+  "Safety Pin",
+  "Chain",
+  "Head Lamp",
+  "Both Side wheel",
+  "Hydraulic OIL",
+  "Hydraulic cylinder leakage",
+  "Back light tail lamp",
+  "Horn",
+  "Hoist lever",
+  "Tilt lever",
+  "Both side mirror",
+  "Back Horn",
+  "Hand break",
+  "Gear lever",
+  "Steering",
+  "Cleaning",
+  "TYRES",
+  "CHARGING",
+  "FOCUE BLUE LIGHT",
+  "FOCUE BLUE LIGHT",
+  "SEAT BELT",
+  "Brake and Accelerator",
+  "Wiring and cables","Remark","Status","Driver","Approval","Approved By"];
 
-      const drivers = data.submittedDrivers?.[day]||[];
-      drivers.forEach(driver=>{
-        rows.push([
-          day,
-          driver,
-          data.checklist.Brakes?.[day]||"",
-          data.checklist.Steering?.[day]||"",
-          data.checklist.Electrical?.[day]||"",
-          data.checklist.Wheel?.[day]||"",
-          data.checklist.Lights?.[day]||"",
-          data.remarks?.[day]?.[driver]||"",
-          data.status?.[day]?.[driver]?.state||"",
-          data.approvals?.[day]?.[driver]?.status||""
-        ]);
-      });
+   parameters.forEach(param=>{
+  const row = [param];
+  dates.forEach(day=>{
+    let val = "";
+    const drivers = data.submittedDrivers?.[day]||[];
+    const driver = drivers[0]||"";
+
+    if(checklistItems.includes(param)){
+      val = data.checklist?.[param]?.[day]||"";
+    } else {
+      switch(param){
+        case "Remark": val = data.remarks?.[day]?.[driver]||""; break;
+        case "Status": val = data.status?.[day]?.[driver]?.state||""; break;
+        case "Driver": val = driver; break;
+        case "Approval": val = data.approvals?.[day]?.[driver]?.status||""; break;
+        case "Approved By": val = data.approvals?.[day]?.[driver]?.by||""; break;
+      }
     }
+    row.push(val);
+  });
+  rows.push(row);
+});
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
     XLSX.utils.book_append_sheet(wb, ws, mheId);
