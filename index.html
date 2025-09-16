@@ -371,17 +371,20 @@ async function approveChecklist(mheId, driver, day){
     const snap = await getDoc(docRef);
     if(!snap.exists()) return;
 
+    const supervisorName = prompt("Enter your name for approval:");
+    if(!supervisorName) return alert("Approval cancelled");
+
     const data = snap.data();
     data.approvals = data.approvals||{};
     data.approvals[day] = data.approvals[day]||{};
-    data.approvals[day][driver] = { status:"Approved", approvedAt:(new Date()).toISOString() };
+    data.approvals[day][driver] = { status:"Approved", approvedAt:(new Date()).toISOString(), by: supervisorName };
 
     data.status = data.status||{};
     data.status[day] = data.status[day]||{};
     data.status[day][driver].state = "Approved";
 
     await updateDoc(docRef,data);
-    alert(`✅ Checklist approved for ${driver} on ${day}`);
+    alert(`✅ Checklist approved for ${driver} on ${day} by ${supervisorName}`);
     loadTable();
 }
 
@@ -391,19 +394,23 @@ async function rejectChecklist(mheId, driver, day){
     const snap = await getDoc(docRef);
     if(!snap.exists()) return;
 
+    const supervisorName = prompt("Enter your name for rejection:");
+    if(!supervisorName) return alert("Rejection cancelled");
+
     const data = snap.data();
     data.approvals = data.approvals||{};
     data.approvals[day] = data.approvals[day]||{};
-    data.approvals[day][driver] = { status:"Rejected", rejectedAt:(new Date()).toISOString() };
+    data.approvals[day][driver] = { status:"Rejected", rejectedAt:(new Date()).toISOString(), by: supervisorName };
 
     data.status = data.status||{};
     data.status[day] = data.status[day]||{};
     data.status[day][driver].state = "Rejected";
 
     await updateDoc(docRef,data);
-    alert(`❌ Checklist rejected for ${driver} on ${day}`);
+    alert(`❌ Checklist rejected for ${driver} on ${day} by ${supervisorName}`);
     loadTable();
 }
+
 
 /* --- TODAY ALERT --- */
 async function showTodaySubmissionAlert(monthKey){
