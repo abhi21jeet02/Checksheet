@@ -243,9 +243,15 @@ async function loadTodayForDriver(){
 /* --- SUBMIT --- */
 async function submitForm(){
   if(!ensureMheIdPresent()) return;
-  const driver = window.currentDriver || document.getElementById("driverName").value.trim();
-  if(!driver){ alert("Driver Name/ID required."); return; }
 
+  // Force check: only assigned driver can submit
+  const assignedDriver = await fetchAssignedDriver();
+  if(!assignedDriver){
+      alert("⚠️ No driver assigned via Key Holder. Submission not allowed.");
+      return;
+  }
+
+  const driver = assignedDriver; // ✅ Manual entry ignore karo
   const remark = document.getElementById("driverRemark").value.trim();
   const { day, monthKey, isoTime, pretty } = getTodayParts();
   const mheDocRef = doc(db,"checklists",monthKey,"MHEs",MHE_ID);
@@ -271,6 +277,7 @@ async function submitForm(){
 
   if(snap.exists()) await updateDoc(mheDocRef,data); 
   else await setDoc(mheDocRef,data);
+
 // deactivate assignment in Key Holder collection// 
 // const assignmentRef = doc(db,"assignments",MHE_ID);// 
 // await updateDoc(assignmentRef,{ active:false });// 
@@ -405,13 +412,19 @@ async function showTodaySubmissionAlert(monthKey){
     const rows = table.querySelectorAll("tbody tr");
     let alertText = "";
     rows.forEach(row=>{
-        if(row.children[2].textContent === day){
-            const status = row.children[9].textContent;
-            if(status === "Pending") alertText = "⚠️ Some submissions today are still pending approval.";
+        const rowDay = row.children[2].textContent; // Day column always 3rd
+        if(rowDay === day){
+            // Status column hamesha "Remark" ke baad aata hai → index = checklistItems.length + 4
+            const statusColIndex = 3 + checklistItems.length + 1; 
+            const status = row.children[statusColIndex].textContent.trim();
+            if(status === "Pending"){
+                alertText = "⚠️ Some submissions today are still pending approval.";
+            }
         }
     });
     document.getElementById("todayAlert").innerHTML = alertText ? `<div class="alert">${alertText}</div>` : "";
 }
+
 /* --- INIT --- */
 (function init(){ populateMonths(); })();
 
