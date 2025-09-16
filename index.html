@@ -49,6 +49,16 @@
       <option value="supervisor">Supervisor</option>
     </select>
   </div>
+<!-- Info Card (Modern Profile Style) -->
+<div class="card" id="mheInfoCard" style="display:none; text-align:center;">
+  <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+    <div id="driverAvatar" style="width:100px; height:100px; border-radius:50%; background:#3b82f6; display:flex; align-items:center; justify-content:center; font-size:36px; color:#fff; font-weight:700;">--</div>
+    <h3 id="infoDriver" style="margin:0; font-size:20px;">--</h3>
+    <p id="infoDriverDetails" style="margin:0; font-size:14px; color:#cbd5e1; line-height:1.4;">--</p>
+    <p><strong>MHE ID:</strong> <span id="infoMHE">--</span></p>
+  </div>
+</div>
+
 
  <!-- Driver Form -->
 <div class="card" id="form-section" style="display:none;">
@@ -371,20 +381,17 @@ async function approveChecklist(mheId, driver, day){
     const snap = await getDoc(docRef);
     if(!snap.exists()) return;
 
-    const supervisorName = prompt("Enter your name for approval:");
-    if(!supervisorName) return alert("Approval cancelled");
-
     const data = snap.data();
     data.approvals = data.approvals||{};
     data.approvals[day] = data.approvals[day]||{};
-    data.approvals[day][driver] = { status:"Approved", approvedAt:(new Date()).toISOString(), by: supervisorName };
+    data.approvals[day][driver] = { status:"Approved", approvedAt:(new Date()).toISOString() };
 
     data.status = data.status||{};
     data.status[day] = data.status[day]||{};
     data.status[day][driver].state = "Approved";
 
     await updateDoc(docRef,data);
-    alert(`✅ Checklist approved for ${driver} on ${day} by ${supervisorName}`);
+    alert(`✅ Checklist approved for ${driver} on ${day}`);
     loadTable();
 }
 
@@ -394,23 +401,19 @@ async function rejectChecklist(mheId, driver, day){
     const snap = await getDoc(docRef);
     if(!snap.exists()) return;
 
-    const supervisorName = prompt("Enter your name for rejection:");
-    if(!supervisorName) return alert("Rejection cancelled");
-
     const data = snap.data();
     data.approvals = data.approvals||{};
     data.approvals[day] = data.approvals[day]||{};
-    data.approvals[day][driver] = { status:"Rejected", rejectedAt:(new Date()).toISOString(), by: supervisorName };
+    data.approvals[day][driver] = { status:"Rejected", rejectedAt:(new Date()).toISOString() };
 
     data.status = data.status||{};
     data.status[day] = data.status[day]||{};
     data.status[day][driver].state = "Rejected";
 
     await updateDoc(docRef,data);
-    alert(`❌ Checklist rejected for ${driver} on ${day} by ${supervisorName}`);
+    alert(`❌ Checklist rejected for ${driver} on ${day}`);
     loadTable();
 }
-
 
 /* --- TODAY ALERT --- */
 async function showTodaySubmissionAlert(monthKey){
@@ -520,6 +523,70 @@ window.downloadExcel = async function(){
 
   XLSX.writeFile(wb, `MHE_Checklist_${monthKey}.xlsx`);
 };
+async function showMHEInfo(){
+  const card = document.getElementById("mheInfoCard");
+  const infoMHE = document.getElementById("infoMHE");
+  const infoDriver = document.getElementById("infoDriver");
+  const infoDriverDetails = document.getElementById("infoDriverDetails");
+  const driverAvatar = document.getElementById("driverAvatar");
+
+  if(!MHE_ID){
+    hide(card);
+    return;
+  }
+
+  show(card);
+  infoMHE.textContent = MHE_ID;
+
+  try {
+    const assignmentRef = doc(db,"assignments",MHE_ID);
+    const snap = await getDoc(assignmentRef);
+    if(snap.exists() && snap.data().driver){
+      const driverName = snap.data().driver;
+      infoDriver.textContent = driverName;
+
+      // Fetch driver details from drivers collection
+      const driversCol = collection(db,"drivers");
+      const qSnap = await getDocs(driversCol);
+      let driverData = null;
+      qSnap.forEach(docSnap=>{
+        const d = docSnap.data();
+        if(d.name === driverName) driverData = d;
+      });
+
+      if(driverData){
+        driverAvatar.textContent = driverData.name.split(" ").map(n=>n[0]).join("").toUpperCase(); // Initials
+        infoDriverDetails.innerHTML = `
+          <strong>Employee Code:</strong> ${driverData.empCode || "--"}<br>
+          <strong>Driver ID:</strong> ${driverData.id || "--"}<br>
+          <strong>License:</strong> ${driverData.license || "--"}        `;
+      } else {
+        driverAvatar.textContent = "--";
+        infoDriverDetails.textContent = "Driver details not found";
+      }
+
+    } else {
+      driverAvatar.textContent = "--";
+      infoDriver.textContent = "Not assigned";
+      infoDriverDetails.textContent = "--";
+    }
+  } catch(err){
+    console.error(err);
+    driverAvatar.textContent = "--";
+    infoDriver.textContent = "Error fetching";
+    infoDriverDetails.textContent = "--";
+  }
+}
+
+// Hide info card when role is selected
+const roleSelect = document.getElementById("roleSelect");
+roleSelect.addEventListener("change", ()=>{
+  const card = document.getElementById("mheInfoCard");
+  if(roleSelect.value) hide(card);
+});
+
+// Call on page load
+showMHEInfo();
 
 
 </script>
