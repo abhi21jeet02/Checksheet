@@ -523,60 +523,84 @@ window.downloadExcel = async function(){
 
   XLSX.writeFile(wb, `MHE_Checklist_${monthKey}.xlsx`);
 };
-async function showMHEInfo(){
+async function showMHEInfo() {
   const card = document.getElementById("mheInfoCard");
   const infoMHE = document.getElementById("infoMHE");
   const infoDriver = document.getElementById("infoDriver");
   const infoDriverDetails = document.getElementById("infoDriverDetails");
   const driverAvatar = document.getElementById("driverAvatar");
 
-  if(!MHE_ID){
-    hide(card);
+  if (!MHE_ID) {
+    card.style.display = "none";
     return;
   }
 
-  show(card);
+  card.style.display = "block";
   infoMHE.textContent = MHE_ID;
 
   try {
-    const assignmentRef = doc(db,"assignments",MHE_ID);
+    const assignmentRef = doc(db, "assignments", MHE_ID);
     const snap = await getDoc(assignmentRef);
-    if(snap.exists() && snap.data().driver){
-      const driverName = snap.data().driver;
-      infoDriver.textContent = driverName;
 
-      // Fetch driver details from drivers collection
-      const driversCol = collection(db,"drivers");
-      const qSnap = await getDocs(driversCol);
-      let driverData = null;
-      qSnap.forEach(docSnap=>{
-        const d = docSnap.data();
-        if(d.name === driverName) driverData = d;
-      });
+    if (snap.exists()) {
+      const data = snap.data();
 
-      if(driverData){
-        driverAvatar.textContent = driverData.name.split(" ").map(n=>n[0]).join("").toUpperCase(); // Initials
-        infoDriverDetails.innerHTML = `
-          <strong>Employee Code:</strong> ${driverData.empCode || "--"}<br>
-          <strong>Driver ID:</strong> ${driverData.id || "--"}<br>
-          <strong>License:</strong> ${driverData.license || "--"}        `;
-      } else {
+      // 🚨 If returned or inactive, show "Not assigned"
+      if (!data.active || data.returnedAt) {
         driverAvatar.textContent = "--";
-        infoDriverDetails.textContent = "Driver details not found";
+        infoDriver.textContent = "Not assigned";
+        infoDriverDetails.textContent = "--";
+        return;
       }
 
+      const driverName = data.driver;
+      if (driverName) {
+        infoDriver.textContent = driverName;
+
+        // Fetch driver details from drivers collection
+        const driversCol = collection(db, "drivers");
+        const qSnap = await getDocs(driversCol);
+
+        let driverData = null;
+        qSnap.forEach(docSnap => {
+          const d = docSnap.data();
+          if (d.name === driverName) driverData = d;
+        });
+
+        if (driverData) {
+          driverAvatar.textContent = driverData.name
+            .split(" ")
+            .map(n => n[0])
+            .join("")
+            .toUpperCase(); // Initials
+
+          infoDriverDetails.innerHTML = `
+            <strong>Employee Code:</strong> ${driverData.empCode || "--"}<br>
+            <strong>Driver ID:</strong> ${driverData.id || "--"}<br>
+            <strong>License:</strong> ${driverData.license || "--"}
+          `;
+        } else {
+          driverAvatar.textContent = "--";
+          infoDriverDetails.textContent = "Driver details not found";
+        }
+      } else {
+        driverAvatar.textContent = "--";
+        infoDriver.textContent = "Not assigned";
+        infoDriverDetails.textContent = "--";
+      }
     } else {
       driverAvatar.textContent = "--";
       infoDriver.textContent = "Not assigned";
       infoDriverDetails.textContent = "--";
     }
-  } catch(err){
+  } catch (err) {
     console.error(err);
     driverAvatar.textContent = "--";
     infoDriver.textContent = "Error fetching";
     infoDriverDetails.textContent = "--";
   }
 }
+
 
 // Hide info card when role is selected
 const roleSelect = document.getElementById("roleSelect");
